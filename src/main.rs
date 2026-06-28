@@ -655,6 +655,13 @@ fn cmd_run() -> Result<()> {
         return Ok(());
     }
     eprintln!("new records: {}", new_records.len());
+    for rec in &new_records {
+        println!(
+            "{} {}",
+            rec.get("Package").unwrap_or("?"),
+            rec.get("Version").unwrap_or("?")
+        );
+    }
 
     // 5: append the new records after a single blank line, leaving the existing
     // content untouched, then recompress and upload the same bytes to every key.
