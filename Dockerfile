@@ -11,8 +11,13 @@ COPY src ./src
 RUN touch src/main.rs && cargo build --release
 
 # --- runtime stage -------------------------------------------------------
-# distroless/cc gives us glibc + CA certificates (needed for the HTTPS calls to
-# R2, CouchDB and Cloudflare) and almost nothing else.
-FROM gcr.io/distroless/cc-debian12
+# debian-slim rather than distroless: GitHub Actions `container:` jobs start the
+# image with a keep-alive command (`tail -f /dev/null`) and exec steps via a
+# shell, so the runtime image must provide coreutils + sh. ca-certificates is
+# needed for the HTTPS calls to R2, CouchDB and Cloudflare.
+FROM debian:bookworm-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=build /src/target/release/allpackages /usr/local/bin/allpackages
 ENTRYPOINT ["allpackages"]
