@@ -17,7 +17,7 @@ using the container image built from the [`Dockerfile`](Dockerfile).
 
 ## Usage
 
-```sh
+```
 ❯ ./target/debug/allpackages
 allpackages 0.1.0 — update CRAN-like package repository metadata
 
