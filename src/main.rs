@@ -543,6 +543,13 @@ fn cmd_update(src: Option<String>) -> Result<()> {
         eprintln!("no new records to append");
         return Ok(());
     }
+    for rec in &new_records {
+        println!(
+            "{} {}",
+            rec.get("Package").unwrap_or("?"),
+            rec.get("Version").unwrap_or("?")
+        );
+    }
     let new_text = dcf::write(&new_records);
 
     // Append after exactly one blank line, normalizing whatever trailing

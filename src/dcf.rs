@@ -22,6 +22,10 @@ impl Record {
     pub fn set(&mut self, key: &str, value: impl Into<String>) {
         self.0.set(key, &value.into());
     }
+
+    pub fn get(&self, key: &str) -> Option<&str> {
+        self.0.get(key)
+    }
 }
 
 /// Serialize records to DCF text, paragraphs separated by a blank line
