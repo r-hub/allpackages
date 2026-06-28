@@ -337,7 +337,10 @@ fn last_published(text: &str) -> Result<&str> {
 /// `2026-06-26 07:20:08 UTC` -> `2026-06-26T07:20:08+00:00`: drop the trailing
 /// ` UTC`, put a `T` between date and time, and append the `+00:00` offset.
 fn published_to_startkey(published: &str) -> String {
-    let s = published.trim().strip_suffix(" UTC").unwrap_or(published.trim());
+    let s = published
+        .trim()
+        .strip_suffix(" UTC")
+        .unwrap_or(published.trim());
     format!("{}+00:00", s.replacen(' ', "T", 1))
 }
 
@@ -470,7 +473,12 @@ fn new_event_to_record(pkg: &serde_json::Value, published: &str) -> Option<dcf::
     set_deps(&mut rec, obj, "Enhances", "Enhances");
     set_str(&mut rec, obj, "License", "License");
     set_str(&mut rec, obj, "License_is_FOSS", "License_is_FOSS");
-    set_str(&mut rec, obj, "License_restricts_use", "License_restricts_use");
+    set_str(
+        &mut rec,
+        obj,
+        "License_restricts_use",
+        "License_restricts_use",
+    );
     set_str(&mut rec, obj, "OS_type", "OS_type");
     set_str(&mut rec, obj, "Archs", "Archs");
     set_str(&mut rec, obj, "MD5sum", "MD5sum");
@@ -564,8 +572,8 @@ fn cmd_upload() -> Result<()> {
     let http = http_client()?;
     let (bucket, creds) = cfg.bucket_and_creds()?;
 
-    let raw = std::fs::read(ALLPACKAGES_FILE)
-        .with_context(|| format!("reading {ALLPACKAGES_FILE}"))?;
+    let raw =
+        std::fs::read(ALLPACKAGES_FILE).with_context(|| format!("reading {ALLPACKAGES_FILE}"))?;
     eprintln!("read {ALLPACKAGES_FILE} ({} bytes)", raw.len());
 
     // Compress each variant once (gzip at max, zstd at ZSTD_LEVEL) and reuse the
@@ -577,7 +585,10 @@ fn cmd_upload() -> Result<()> {
     eprintln!("  gzip:  {} bytes", gz.len());
     let zst = Compression::Zstd.compress_bytes(&raw)?;
     eprintln!("  zstd:  {} bytes", zst.len());
-    eprintln!("compression done in {:.1}s", started.elapsed().as_secs_f64());
+    eprintln!(
+        "compression done in {:.1}s",
+        started.elapsed().as_secs_f64()
+    );
 
     // Write the compressed variants next to the local ALLPACKAGES file.
     for (suffix, body) in [(".gz", &gz), (".zst", &zst)] {
@@ -619,8 +630,7 @@ fn cmd_run() -> Result<()> {
     // only ever append to this content, never rewrite it, so keep it verbatim.
     let src_key = cfg.r2.download_key();
     let src_compression = Compression::from_key(src_key);
-    let existing_text =
-        download_existing(&http, &bucket, &creds, src_key, src_compression)?;
+    let existing_text = download_existing(&http, &bucket, &creds, src_key, src_compression)?;
 
     // 3: fetch new package events from CouchDB, resuming just after the last
     // record we already hold (the same boundary logic as `get-new`).
@@ -653,7 +663,12 @@ fn cmd_run() -> Result<()> {
     }
 
     // 6: purge Cloudflare cache.
-    purge_cache(&http, &cfg.cf.zone_id, &cfg.cf.api_token, &cfg.cf.purge_urls)?;
+    purge_cache(
+        &http,
+        &cfg.cf.zone_id,
+        &cfg.cf.api_token,
+        &cfg.cf.purge_urls,
+    )?;
     eprintln!("purged {} url(s)", cfg.cf.purge_urls.len());
 
     Ok(())
@@ -770,10 +785,7 @@ Package: b
 Version: 2.0
 Published: 2026-06-26 07:20:08 UTC
 ";
-        assert_eq!(
-            last_published(dcf).unwrap(),
-            "2026-06-26 07:20:08 UTC"
-        );
+        assert_eq!(last_published(dcf).unwrap(), "2026-06-26 07:20:08 UTC");
     }
 
     #[test]
@@ -791,10 +803,9 @@ Published: 2026-06-26 07:20:08 UTC
 
     #[test]
     fn render_deps_preserves_order_and_constraints() {
-        let v: serde_json::Value = serde_json::from_str(
-            r#"{"R": ">= 3.5", "stats": "*", "posterior": ">=\n1.7.0"}"#,
-        )
-        .unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(r#"{"R": ">= 3.5", "stats": "*", "posterior": ">=\n1.7.0"}"#)
+                .unwrap();
         // Declared order kept; `*` -> bare name; folded version unwrapped.
         assert_eq!(
             render_deps(&v).unwrap(),

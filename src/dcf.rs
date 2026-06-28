@@ -55,7 +55,10 @@ mod tests {
     #[test]
     fn write_emits_fields_in_set_order() {
         let rec = record(&[("Package", "zoo"), ("Version", "1.8-12")]);
-        assert_eq!(write(std::slice::from_ref(&rec)), "Package: zoo\nVersion: 1.8-12\n");
+        assert_eq!(
+            write(std::slice::from_ref(&rec)),
+            "Package: zoo\nVersion: 1.8-12\n"
+        );
     }
 
     #[test]
