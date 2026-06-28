@@ -1,0 +1,40 @@
+name: Update repository metadata
+
+on:
+  schedule:
+    - cron: "27 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: update-metadata
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ghcr.io/${{ github.repository }}:latest
+      # Needed only while the GHCR package is private; drop this block if you
+      # make the package public.
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Update metadata and purge cache
+        run: allpackages run
+        env:
+          # R2 (S3-compatible)
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          OBJECT_KEYS: ${{ vars.OBJECT_KEYS }}
+          # CouchDB
+          COUCH_URL: ${{ secrets.COUCH_URL }}
+          # Cloudflare cache purge
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          PURGE_URLS: ${{ vars.PURGE_URLS }}

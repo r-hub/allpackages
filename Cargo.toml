@@ -1,0 +1,27 @@
+[package]
+name = "allpackages"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "allpackages"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls", "json"] }
+serde = { version = "1", features = ["derive"] }
+# preserve_order keeps JSON object key order (e.g. dependency lists) intact, so
+# reconstructed Depends/Imports/... match the order packages declared them in.
+serde_json = { version = "1", features = ["preserve_order"] }
+flate2 = "1"
+zstd = "0.13"
+# rusty-s3 only signs requests (SigV4); we drive them with reqwest. Works great
+# against R2's S3-compatible API and avoids pulling in the full async aws-sdk.
+rusty-s3 = "0.5"
+deb822-fast = "0.2.3"
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
