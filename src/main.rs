@@ -60,6 +60,16 @@ impl Compression {
         Ok(out)
     }
 
+    /// HTTP `Content-Type` for an object stored under a key with this suffix. The
+    /// uncompressed variant is plain UTF-8 DCF text; the `.gz`/`.zst` variants are
+    /// opaque compressed blobs.
+    fn content_type(self) -> &'static str {
+        match self {
+            Compression::None => "text/plain; charset=utf-8",
+            _ => "application/octet-stream",
+        }
+    }
+
     fn compress(self, text: &str) -> Result<Vec<u8>> {
         self.compress_bytes(text.as_bytes())
     }
@@ -610,14 +620,15 @@ fn cmd_upload() -> Result<()> {
     let started = std::time::Instant::now();
 
     for key in &cfg.object_keys {
-        let body = match Compression::from_key(key) {
+        let comp = Compression::from_key(key);
+        let body = match comp {
             Compression::None => raw.clone(),
             Compression::Gzip => gz.clone(),
             Compression::Zstd => zst.clone(),
         };
         let len = body.len();
         eprintln!("  uploading {key} ({len} bytes)...");
-        upload(&http, &bucket, &creds, key, body)?;
+        upload(&http, &bucket, &creds, key, body, comp.content_type())?;
         eprintln!("  uploaded {key}");
     }
     eprintln!("uploads done in {:.1}s", started.elapsed().as_secs_f64());
@@ -670,9 +681,10 @@ fn cmd_run() -> Result<()> {
     new_text.push_str(sep);
     new_text.push_str(&dcf::write(&new_records));
     for key in &cfg.r2.object_keys {
-        let body = Compression::from_key(key).compress(&new_text)?;
+        let comp = Compression::from_key(key);
+        let body = comp.compress(&new_text)?;
         let len = body.len();
-        upload(&http, &bucket, &creds, key, body)?;
+        upload(&http, &bucket, &creds, key, body, comp.content_type())?;
         eprintln!("uploaded {key} ({len} bytes)");
     }
 
@@ -722,11 +734,12 @@ fn upload(
     creds: &Credentials,
     key: &str,
     body: Vec<u8>,
+    content_type: &str,
 ) -> Result<()> {
     let action = bucket.put_object(Some(creds), key);
     let url = action.sign(SIGN_TTL);
     http.put(url)
-        .header(reqwest::header::CONTENT_TYPE, "application/octet-stream")
+        .header(reqwest::header::CONTENT_TYPE, content_type)
         .body(body)
         .send()?
         .error_for_status()?;
